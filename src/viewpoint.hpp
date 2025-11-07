@@ -8,6 +8,8 @@
 #include <limits>
 #include <vector>
 #include <algorithm>
+#include <thread>
+#include <future>
 
 class Viewpoint
 {
@@ -20,9 +22,7 @@ public:
         pixelBuffer.resize(screenWidth * screenHeight, 0);
     }
 
-    Viewpoint(const Vector3& pos, double yaw, double pitch, double fov, 
-              Space* space, 
-              int screenWidth = 800, int screenHeight = 600)
+    Viewpoint(const Vector3& pos, double yaw, double pitch, double fov, Space* space, int screenWidth = 800, int screenHeight = 600)
         : position(pos), yaw(yaw), pitch(pitch), fov(fov), 
           screenWidth(screenWidth), screenHeight(screenHeight),
           space(space),
@@ -43,7 +43,7 @@ public:
         }
 
         window = SDL_CreateWindow(
-            "Three.cpp 3D Renderer",
+            "Three.cpp",
             SDL_WINDOWPOS_CENTERED,
             SDL_WINDOWPOS_CENTERED,
             screenWidth, screenHeight,
@@ -171,42 +171,13 @@ public:
         return castRayDir(dir.normalize());
     }
 
-    void render()
+    // Render a slice of rows (for multi-threading)
+    void renderSlice(int startY, int endY, const Vector3& forward, const Vector3& right, const Vector3& up, double aspectRatio, double tanHalfFov)
     {
-        if (space == nullptr) return;
-
         const int width = screenWidth;
         const int height = screenHeight;
-        const int halfHeight = height / 2;
-
-        // render ceiling and floor
-        for (int y = 0; y < height; ++y) {
-            uint32_t color = (y < halfHeight) ? 0xFF1A1A2E : 0xFF3A3A3A;
-            for (int x = 0; x < width; ++x) {
-                pixelBuffer[y * width + x] = color;
-            }
-        }
-
-        // render planes
-        double aspectRatio = static_cast<double>(width) / static_cast<double>(height);
-        double fovRad = fov * M_PI / 180.0;
-        double tanHalfFov = std::tan(fovRad / 2.0);
         
-        double yawRad = yaw * M_PI / 180.0;
-        double pitchRad = pitch * M_PI / 180.0;
-        
-        Vector3 forward(
-            std::cos(pitchRad) * std::cos(yawRad),
-            std::sin(pitchRad),
-            std::cos(pitchRad) * std::sin(yawRad)
-        );
-        forward = forward.normalize();
-        
-        Vector3 worldUp(0, 1, 0);
-        Vector3 right = forward.cross(worldUp).normalize();
-        Vector3 up = right.cross(forward).normalize();
-        
-        for (int y = 0; y < height; ++y) {
+        for (int y = startY; y < endY; ++y) {
             for (int x = 0; x < width; ++x) {
                 double ndcX = (2.0 * (x + 0.5) / width - 1.0) * aspectRatio * tanHalfFov;
                 double ndcY = (1.0 - 2.0 * (y + 0.5) / height) * tanHalfFov;
@@ -232,6 +203,65 @@ public:
                 
                 pixelBuffer[y * width + x] = planeColor;
             }
+        }
+    }
+
+    void render()
+    {
+        if (space == nullptr) return;
+
+        const int width = screenWidth;
+        const int height = screenHeight;
+        const int halfHeight = height / 2;
+
+        // render ceiling and floor
+        for (int y = 0; y < height; ++y) {
+            uint32_t color = (y < halfHeight) ? 0xFF1A1A2E : 0xFF3A3A3A;
+            for (int x = 0; x < width; ++x) {
+                pixelBuffer[y * width + x] = color;
+            }
+        }
+
+        // Prepare camera vectors (shared by all threads)
+        double aspectRatio = static_cast<double>(width) / static_cast<double>(height);
+        double fovRad = fov * M_PI / 180.0;
+        double tanHalfFov = std::tan(fovRad / 2.0);
+        
+        double yawRad = yaw * M_PI / 180.0;
+        double pitchRad = pitch * M_PI / 180.0;
+        
+        Vector3 forward(
+            std::cos(pitchRad) * std::cos(yawRad),
+            std::sin(pitchRad),
+            std::cos(pitchRad) * std::sin(yawRad)
+        );
+        forward = forward.normalize();
+        
+        Vector3 worldUp(0, 1, 0);
+        Vector3 right = forward.cross(worldUp).normalize();
+        Vector3 up = right.cross(forward).normalize();
+        
+        // Multi-threaded rendering
+        unsigned int numThreads = std::thread::hardware_concurrency();
+        if (numThreads == 0) numThreads = 4;
+        
+        std::vector<std::future<void>> futures;
+        int rowsPerThread = height / numThreads;
+        
+        for (unsigned int i = 0; i < numThreads; ++i) {
+            int startY = i * rowsPerThread;
+            int endY = (i == numThreads - 1) ? height : (i + 1) * rowsPerThread;
+            
+            futures.push_back(std::async(std::launch::async, 
+                [this, startY, endY, forward, right, up, aspectRatio, tanHalfFov]() {
+                    renderSlice(startY, endY, forward, right, up, aspectRatio, tanHalfFov);
+                }
+            ));
+        }
+        
+        // Wait for all threads to complete
+        for (auto& f : futures) {
+            f.get();
         }
 
         SDL_UpdateTexture(texture, nullptr, pixelBuffer.data(), width * sizeof(uint32_t));

@@ -2,14 +2,13 @@
 #include "plane.hpp"
 #include "space.hpp"
 #include "viewpoint.hpp"
+#include "utils/utils_models.hpp"
 #include <iostream>
 
 int main()
 {
-    // create space
     Space space;
 
-    // create some test triangles (planes)
     // Floor plane (large triangle)
     space.addPlane(Plane(
         Vector3(-10, -2, -10),
@@ -58,15 +57,19 @@ int main()
         Vector3(5, -2, 5)
     ));
 
+    addCube(space, Vector3(-2, -1, 0), 2.0);
+
+    addBall(space, Vector3(2, 0, 0), 1.0, 6, 4);
+
     // create viewpoint
     Viewpoint viewpoint(
         Vector3(0, 0, 0),  // position
         0.0,                // yaw
         0.0,                // pitch
-        75.0,               // fov
+        90.0,               // fov
         &space,
-        800,                // screenWidth
-        600                 // screenHeight
+        1960,                // screenWidth
+        1080                 // screenHeight
     );
 
     if (!viewpoint.initSDL()) {
@@ -177,7 +180,7 @@ int main()
         // render scene
         viewpoint.render();
         
-        SDL_Delay(16); // ~60 FPS
+        // SDL_Delay(16); // ~60 FPS
     }
 
     SDL_SetRelativeMouseMode(SDL_FALSE);
