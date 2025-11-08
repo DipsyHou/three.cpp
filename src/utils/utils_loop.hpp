@@ -6,7 +6,7 @@
 #include <iostream>
 #include <cmath>
 
-// Run the main interaction loop for the 3D renderer
+// Run a main interaction loop
 inline void runInteractionLoop(Viewpoint& viewpoint) {
     if (!viewpoint.initSDL()) {
         std::cerr << "Failed to initialize SDL!" << std::endl;
@@ -126,7 +126,7 @@ inline void runInteractionLoop(Viewpoint& viewpoint) {
         Uint32 currentTime = SDL_GetTicks();
         if (currentTime - lastFpsTime >= 1000) {
             fps = frameCount * 1000.0 / (currentTime - lastFpsTime);
-            std::cout << "FPS: " << fps << " (" << (1000.0 / fps) << " ms/frame)" << std::endl;
+            std::cout << "FPS: " << fps << std::endl;
             frameCount = 0;
             lastFpsTime = currentTime;
         }

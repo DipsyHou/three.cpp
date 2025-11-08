@@ -1,10 +1,6 @@
-#include "vector3.hpp"
-#include "plane.hpp"
-#include "space.hpp"
 #include "viewpoint.hpp"
 #include "utils/utils_models.hpp"
 #include "utils/utils_loop.hpp"
-#include <iostream>
 
 int main()
 {
