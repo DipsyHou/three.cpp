@@ -119,10 +119,9 @@ public:
 
         const auto& planes = space->getPlanes();
         for (const auto& plane : planes) {
-
-            Vector3 a = plane.getA();
-            Vector3 b = plane.getB();
-            Vector3 c = plane.getC();
+            const Vector3& a = plane.getA();
+            const Vector3& b = plane.getB();
+            const Vector3& c = plane.getC();
 
             Vector3 edge1 = b - a;
             Vector3 edge2 = c - a;
@@ -131,7 +130,7 @@ public:
             double det = edge1.dot(h);
             
             // parallel check
-            if (std::abs(det) < EPS) continue;
+            if (det > -EPS && det < EPS) continue;
 
             double invDet = 1.0 / det;
             Vector3 s = position - a;

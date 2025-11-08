@@ -40,6 +40,41 @@ void addCube(Space& space, const Vector3& center, double size)
     space.addPlane(Plane(v4, v5, v1));
     space.addPlane(Plane(v4, v1, v0));
 }
+void addCube(Space& space, const Vector3& pointA, const Vector3& pointB)
+{
+    Vector3 v0(pointA.x, pointA.y, pointA.z);
+    Vector3 v1(pointB.x, pointA.y, pointA.z);
+    Vector3 v2(pointB.x, pointB.y, pointA.z);
+    Vector3 v3(pointA.x, pointB.y, pointA.z);
+    Vector3 v4(pointA.x, pointA.y, pointB.z);
+    Vector3 v5(pointB.x, pointA.y, pointB.z);
+    Vector3 v6(pointB.x, pointB.y, pointB.z);
+    Vector3 v7(pointA.x, pointB.y, pointB.z);
+
+    // Front face
+    space.addPlane(Plane(v0, v1, v2));
+    space.addPlane(Plane(v0, v2, v3));
+
+    // Back face
+    space.addPlane(Plane(v5, v4, v7));
+    space.addPlane(Plane(v5, v7, v6));
+
+    // Left face
+    space.addPlane(Plane(v4, v0, v3));
+    space.addPlane(Plane(v4, v3, v7));
+
+    // Right face
+    space.addPlane(Plane(v1, v5, v6));
+    space.addPlane(Plane(v1, v6, v2));
+
+    // Top face
+    space.addPlane(Plane(v3, v2, v6));
+    space.addPlane(Plane(v3, v6, v7));
+
+    // Bottom face
+    space.addPlane(Plane(v4, v5, v1));
+    space.addPlane(Plane(v4, v1, v0));
+}
 
 void addBall(Space& space, const Vector3& center, double radius, int segments = 12, int rings = 12)
 {
@@ -78,4 +113,52 @@ void addBall(Space& space, const Vector3& center, double radius, int segments = 
     }
 }
 
+void addCylinder(Space& space, const Vector3& center, double radius, double height, int segments = 12)
+{
+    double halfHeight = height / 2.0;
+
+    for (int i = 0; i < segments; ++i) {
+        double theta1 = 2 * M_PI * i / segments;
+        double theta2 = 2 * M_PI * (i + 1) / segments;
+
+        Vector3 v0(
+            center.x + radius * std::cos(theta1),
+            center.y - halfHeight,
+            center.z + radius * std::sin(theta1)
+        );
+        Vector3 v1(
+            center.x + radius * std::cos(theta2),
+            center.y - halfHeight,
+            center.z + radius * std::sin(theta2)
+        );
+        Vector3 v2(
+            center.x + radius * std::cos(theta2),
+            center.y + halfHeight,
+            center.z + radius * std::sin(theta2)
+        );
+        Vector3 v3(
+            center.x + radius * std::cos(theta1),
+            center.y + halfHeight,
+            center.z + radius * std::sin(theta1)
+        );
+
+        // Side face
+        space.addPlane(Plane(v0, v1, v2));
+        space.addPlane(Plane(v0, v2, v3));
+
+        // Bottom face
+        space.addPlane(Plane(
+            Vector3(center.x, center.y - halfHeight, center.z),
+            v1,
+            v0
+        ));
+
+        // Top face
+        space.addPlane(Plane(
+            Vector3(center.x, center.y + halfHeight, center.z),
+            v3,
+            v2
+        ));
+    }
+}
 #endif

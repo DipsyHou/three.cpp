@@ -1,6 +1,6 @@
 CXX = g++
-CXXFLAGS = -std=c++17 -Wall -O2 -I./src
-LDFLAGS = -lSDL2 -lm
+CXXFLAGS = -std=c++17 -Wall -O3 -march=native -ffast-math -I./src
+LDFLAGS = -lSDL2 -lm -lpthread
 
 SRC_DIR = src
 TARGET = three_renderer
